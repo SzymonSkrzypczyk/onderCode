@@ -29,7 +29,6 @@ class Interpreter:
         :param debug: flag to enable debug mode
         :type debug: bool
         :param kwargs: variables to be used in the program
-        :type kwargs: dict
         """
         self.debug = debug
         self.variables = kwargs
