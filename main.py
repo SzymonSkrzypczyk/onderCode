@@ -76,6 +76,8 @@ class Compiler:
             val2 = self.variables[val2]
         else:
             val2 = int(val2)
+        if sign == "/":
+            sign = '//'
         self.variables[name] = eval(f"{val1} {sign} {val2}")
 
     @staticmethod
@@ -95,7 +97,8 @@ class Compiler:
             val2 = self.variables[val2]
         else:
             val2 = int(val2)
-
+        if sign == "=":
+            sign = "=="
         return eval(f"{val1} {sign} {val2}")
 
     def process_condition(self, condition):
@@ -108,11 +111,8 @@ class Compiler:
             else:
                 _, _, res, val1, sign, val2 = CONDITION_ASSESSMENT_REGEX.match(condition).groups()
                 return f"{res} <- {val1} {sign} {val2}"
-
-    def process_action(self, action, line):
-        """processes action"""
-        if InstructionType.VARIABLE_ASSIGNMENT_CHANGE:
-            ...
+        else:
+            return "" # zeby nie bylo bledu
 
     @staticmethod
     def determine_instruction_type(instruction):
@@ -137,7 +137,28 @@ class Compiler:
         while not finished:
             for line in self.lines[start_index:]:
                 instruction_type = self.determine_instruction_type(line)
-                # print(line)
+                if instruction_type == InstructionType.VARIABLE_ASSIGNMENT:
+                    self.steps.append(line)
+                    continue
+                elif instruction_type in (InstructionType.CONDITIONAL_GOTO, InstructionType.CONDITIONAL_ACTION):
+                    value = self.process_condition(line)
+                    self.steps.append(line)
+                    if "goto" in value:
+                        start_index = self.get_goto_line(value) - 1
+                        break
+                    elif "<-" in value:
+                        self.variable_operation(value)
+                elif instruction_type == InstructionType.GOTO:
+                    start_index = self.get_goto_line(line) - 1
+                    self.steps.append(line)
+                    break
+                elif instruction_type == InstructionType.VARIABLE_ASSIGNMENT_CHANGE:
+                    self.variable_operation(line)
+                else:
+                    self.steps.append(line)
+                    finished = True
+                    break
+                """
                 if instruction_type == InstructionType.GOTO:
                     start_index = self.get_goto_line(line) - 1
                     print("Goto ", line)
@@ -150,8 +171,14 @@ class Compiler:
                     print("OTHER ", line)
                     if instruction_type in (InstructionType.CONDITIONAL_ACTION, InstructionType.CONDITIONAL_GOTO):
                         line = self.process_condition(line)
-                    self.steps.append(line)
+                    if GOTO_REGEX.match(line):
+                        start_index = self.get_goto_line(line) - 1
+                        break
+                    elif instruction_type == InstructionType.VARIABLE_ASSIGNMENT_CHANGE:
+                        print(line)
+                        self.variable_operation(line)
                 sleep(1)
+                """
 
     def event_loop(self):
         """the very place of onderCode execution"""
@@ -159,14 +186,9 @@ class Compiler:
 
 
 if __name__ == "__main__":
-    c = Compiler(TEST_FILE_PATH, x=6, y=2)
+    c = Compiler(TEST_SIMPLE_PATH, x=6, y=2)
+    print(c.variables)
     c.assign_variables()
-    # c.variable_operation_number('x', 'x + 2')
-    # c.variable_operation_variables('x', 'x + y')
     c.update_variables()
-    # c.load_steps()
+    c.load_steps()
     print(c.variables)
-    c.variable_operation(c.lines[4])
-    print(c.variables)
-    # print(c.process_condition("if(reszta > y) reszta <- reszta + 1"))
-    # print(c.variables)

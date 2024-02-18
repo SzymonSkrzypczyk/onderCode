@@ -1,5 +1,7 @@
-val <- 0
-if(val > 5) goto 5
+val <- 1
+res <- 0
+if(val > 5) goto 7
 val <- val + 1
+res <- res + 2
 goto 2
 end
