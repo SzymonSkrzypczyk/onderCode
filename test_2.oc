@@ -1,0 +1,5 @@
+val <- 0
+if(val > 5) goto 5
+val <- val + 1
+goto 2
+end

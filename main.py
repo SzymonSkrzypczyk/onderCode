@@ -1,14 +1,29 @@
+from time import sleep
 import re
+from enum import Enum
 from re import compile, sub
 from typing import Union, List
 from pathlib import Path
 
 TEST_FILE_PATH = Path(__file__).parent / "test_file.oc"
+TEST_SIMPLE_PATH = Path(__file__).parent / "test_2.oc"
 VARIABLE_ASSIGNMENT_REGEX = compile(r"^(\w+)\s*<-\s*(\w+)$")  # bedzie trzeba zmienic na alpha itd
+VARIABLE_ASSIGNMENT_CHANGE_REGEX = compile(r"^(\w+)\s*<-\s*(\w+)\s*([-+*/])\s*(\w+)$")
 GOTO_REGEX = compile(r"^goto\s*(\d+)$")
+CONDITION_REGEX = compile(r"^if\((\w+)\s*(!?[<>=])\s*(\w+)\)")
 CONDITION_GOTO_REGEX = compile(r"^if\((\w+)\s*!?[<>=]\s*(\w+)\)\s*goto\s*(\d+)$")
 # bedzie trzeba podmieniac wartosci zmiennych na wartosci i potem do eval
-CONDITION_ACTION_REGEX = compile(r"^if\((\w+)\s*!?[<>=]\s*(\w+)\)\s*(\w+)\s*[+*/-]\s*(\w+)$")
+# trzeba poprawic!!!
+CONDITION_ASSESSMENT_REGEX = compile(r"^if\((\w+)\s*!?[<>=]\s*(\w+)\)\s*(\w+)\s*<-\s*(\w+)\s*([-+*/])\s*(\w+)$")
+
+
+class InstructionType(Enum):
+    VARIABLE_ASSIGNMENT = 1
+    VARIABLE_ASSIGNMENT_CHANGE = 2
+    GOTO = 3
+    CONDITIONAL_GOTO = 4
+    CONDITIONAL_ACTION = 5
+    END = 6
 
 
 class Compiler:
@@ -49,30 +64,109 @@ class Compiler:
             else:
                 self.variables[variable] = int(value)
 
-    # these two methods can be processed as one(to do)
-    def variable_operation_number(self, name, operation):
-        value = self.variables[name]
-        operation = operation.replace(name, str(value))
-        self.variables[name] = eval(operation)
+    def variable_operation(self, operation):
+        """calculate result of variable operation"""
+        name, val1, sign, val2 = VARIABLE_ASSIGNMENT_CHANGE_REGEX.match(operation).groups()
+        if val1.isalpha():
+            val1 = self.variables[val1]
+        else:
+            val1 = int(val1)
 
-    def variable_operation_variables(self, name, operation):
-        names = re.sub(r"\s*[-+*/]\s*", ",", re.sub(r"\s*<-\s*", ",", operation)).split(",")  # can be done better
-        value1, value2 = self.variables[names[0]], self.variables[names[1]]
-        operation_sign = re.sub(r"[^-+*/]*", "", operation)
-        self.variables[name] = eval(f"{value1} {operation_sign} {value2}")
+        if val2.isalpha():
+            val2 = self.variables[val2]
+        else:
+            val2 = int(val2)
+        self.variables[name] = eval(f"{val1} {sign} {val2}")
+
+    @staticmethod
+    def get_goto_line(line):
+        """return line specified in goto instruction"""
+        return int(GOTO_REGEX.match(line).groups(0)[0])
+
+    def check_condition(self, condition):
+        """check condition in if clause"""
+        val1, sign, val2 = CONDITION_REGEX.match(condition).groups()
+        if val1.isalpha():
+            val1 = self.variables[val1]
+        else:
+            val1 = int(val1)
+
+        if val2.isalpha():
+            val2 = self.variables[val2]
+        else:
+            val2 = int(val2)
+
+        return eval(f"{val1} {sign} {val2}")
+
+    def process_condition(self, condition):
+        """processes condition and calls its action"""
+        # moze trzeba zmienic nazwe na cos w stylu extract_action_condition
+        # mozliwe ze bedize trzeba zmieniac co sie dzieje w ramach akcji
+        if self.check_condition(condition):
+            if CONDITION_GOTO_REGEX.match(condition):
+                return f"goto {CONDITION_GOTO_REGEX.match(condition).groups()[2]}"
+            else:
+                _, _, res, val1, sign, val2 = CONDITION_ASSESSMENT_REGEX.match(condition).groups()
+                return f"{res} <- {val1} {sign} {val2}"
+
+    def process_action(self, action, line):
+        """processes action"""
+        if InstructionType.VARIABLE_ASSIGNMENT_CHANGE:
+            ...
+
+    @staticmethod
+    def determine_instruction_type(instruction):
+        """determine type of instruction"""
+        if VARIABLE_ASSIGNMENT_REGEX.match(instruction):
+            return InstructionType.VARIABLE_ASSIGNMENT
+        elif VARIABLE_ASSIGNMENT_CHANGE_REGEX.match(instruction):
+            return InstructionType.VARIABLE_ASSIGNMENT_CHANGE
+        elif GOTO_REGEX.match(instruction):
+            return InstructionType.GOTO
+        elif CONDITION_GOTO_REGEX.match(instruction):
+            return InstructionType.CONDITIONAL_GOTO
+        elif CONDITION_ASSESSMENT_REGEX.match(instruction):
+            return InstructionType.CONDITIONAL_ACTION
+        elif instruction == "end":
+            return InstructionType.END
 
     def load_steps(self):
-        ...
+        """load full list of steps during execution"""
+        finished = False
+        start_index = 0
+        while not finished:
+            for line in self.lines[start_index:]:
+                instruction_type = self.determine_instruction_type(line)
+                # print(line)
+                if instruction_type == InstructionType.GOTO:
+                    start_index = self.get_goto_line(line) - 1
+                    print("Goto ", line)
+                    break
+                elif instruction_type == InstructionType.END:
+                    print("END ", line)
+                    finished = True
+                    break
+                else:
+                    print("OTHER ", line)
+                    if instruction_type in (InstructionType.CONDITIONAL_ACTION, InstructionType.CONDITIONAL_GOTO):
+                        line = self.process_condition(line)
+                    self.steps.append(line)
+                sleep(1)
 
     def event_loop(self):
-        """the very place of OnderCode execution"""
+        """the very place of onderCode execution"""
         ...
 
 
 if __name__ == "__main__":
     c = Compiler(TEST_FILE_PATH, x=6, y=2)
     c.assign_variables()
-    c.variable_operation_number('x', 'x + 2')
-    c.variable_operation_variables('x', 'x + y')
+    # c.variable_operation_number('x', 'x + 2')
+    # c.variable_operation_variables('x', 'x + y')
     c.update_variables()
+    # c.load_steps()
     print(c.variables)
+    c.variable_operation(c.lines[4])
+    print(c.variables)
+    # print(c.process_condition("if(reszta > y) reszta <- reszta + 1"))
+    # print(c.variables)
