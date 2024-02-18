@@ -1,0 +1,7 @@
+1. wynik <- 0
+2. reszta <- x
+3. if(reszta < y) goto 7
+4. reszta <- reszta - y
+5. wynik <- wynik + 1
+6. goto 3
+7. end
