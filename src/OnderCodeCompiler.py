@@ -4,7 +4,7 @@ from pathlib import Path
 from time import sleep
 
 from src.regex_patterns import VARIABLE_ASSIGNMENT_REGEX, VARIABLE_ASSIGNMENT_CHANGE_REGEX, GOTO_REGEX, CONDITION_REGEX, \
-                           CONDITION_GOTO_REGEX, CONDITION_ASSESSMENT_REGEX
+    CONDITION_GOTO_REGEX, CONDITION_ASSESSMENT_REGEX
 from src.InstructionType import InstructionType
 
 
@@ -20,9 +20,18 @@ def sqrt(x: int) -> int:
 
 class Interpreter:
     """Intepreter for onderCode"""
-    def __init__(self, path: Union[str, Path], **kwargs):
-        # kwargs to wejscie
-        # wyjscie bedize sie wybieralo ze zmiennych
+
+    def __init__(self, path: Union[str, Path], debug: bool = False, **kwargs):
+        """initialize interpreter
+        keyword arguments represent variables accesible at the beginning of the program
+        :param path: path to the file with onderCode
+        :type path: Union[str, Path]
+        :param debug: flag to enable debug mode
+        :type debug: bool
+        :param kwargs: variables to be used in the program
+        :type kwargs: dict
+        """
+        self.debug = debug
         self.variables = kwargs
         self.steps = []
         self.lines = []
@@ -54,7 +63,7 @@ class Interpreter:
         """update values of variables(change type and so on)"""
         # step 1 check if all variables contain only values(opposed to names of other variables)
         for variable, value in self.variables.items():
-            if type(value) is str and value.isalnum():
+            if type(value) is str and value.isidentifier():
                 # substitute name of variable with value
                 self.variables[variable] = self.variables[value]
             else:
@@ -66,12 +75,12 @@ class Interpreter:
         :type operation: str
         """
         name, val1, sign, val2 = VARIABLE_ASSIGNMENT_CHANGE_REGEX.match(operation).groups()
-        if val1.isalnum():
+        if val1.isidentifier():
             val1 = self.variables[val1]
         else:
             val1 = int(val1)
 
-        if val2.isalnum():  # trzeba uwzglednic sytuacje dla np nazwy temp_1, czyli liczba i underscore
+        if val2.isidentifier():  # trzeba uwzglednic sytuacje dla np nazwy temp_1, czyli liczba i underscore
             val2 = self.variables[val2]
         else:
             val2 = int(val2)
@@ -85,7 +94,7 @@ class Interpreter:
         :type assignment: str
         """
         name, val = VARIABLE_ASSIGNMENT_REGEX.match(assignment).groups()
-        if val.isalnum():
+        if val.isidentifier():
             self.variables[name] = self.variables[val]
         else:
             self.variables[name] = int(val)
@@ -108,12 +117,12 @@ class Interpreter:
         :rtype: bool
         """
         val1, sign, val2 = CONDITION_REGEX.match(condition).groups()
-        if val1.isalnum():
+        if val1.isidentifier():
             val1 = self.variables[val1]
         else:
             val1 = int(val1)
 
-        if val2.isalnum():
+        if val2.isidentifier():
             val2 = self.variables[val2]
         else:
             val2 = int(val2)
@@ -167,9 +176,10 @@ class Interpreter:
         start_index = 0
         while not finished:
             for line in self.lines[start_index:]:
-                sleep(0.5)
                 instruction_type = self.determine_instruction_type(line)
-                print(line, self.variables, instruction_type)
+                if self.debug:
+                    print(line, self.variables, instruction_type)
+                    sleep(0.5)
                 if instruction_type == InstructionType.VARIABLE_ASSIGNMENT:
                     self.steps.append(line)
                     self.variable_assign(line)

@@ -1,6 +1,6 @@
 1. wynik <- a/b
 2. temp_1 <- wynik * b
-3. temp_2 <- a-temp_1
+3. reszta <- a-temp_1
 4. if(reszta = 0) goto 11
 5. wynik <- b/reszta
 6. temp_1 <- wynik * reszta
