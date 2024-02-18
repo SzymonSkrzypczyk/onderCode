@@ -1,0 +1,11 @@
+1. a <- x
+2. b <- y
+3. if(a = b) goto 10
+4. if(a > b) goto 6
+5. if(a < b) goto 8
+6. b <- b + y
+7. goto 3
+8. a <- a + x
+9. goto 3
+10. nww <- a
+11. end

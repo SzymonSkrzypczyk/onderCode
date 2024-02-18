@@ -1,6 +1,7 @@
 from re import sub
 from typing import Union
 from pathlib import Path
+from time import sleep
 
 from src.regex_patterns import VARIABLE_ASSIGNMENT_REGEX, VARIABLE_ASSIGNMENT_CHANGE_REGEX, GOTO_REGEX, CONDITION_REGEX, \
                            CONDITION_GOTO_REGEX, CONDITION_ASSESSMENT_REGEX
@@ -27,7 +28,7 @@ class Interpreter:
         self.lines = []
         self.path = Path(path)
         self.read_lines()
-        self.assign_variables()
+        # self.assign_variables()
 
     def read_lines(self) -> None:
         """read lines from the file and store them in list of lines"""
@@ -39,6 +40,7 @@ class Interpreter:
             line = sub(r"\s*\d+\.\s*", "", line)
             self.lines.append(line)
 
+    # there is a possibility that this method will be removed
     def assign_variables(self) -> None:
         """assign names and values to variables"""
         filtered = [i for i in self.lines if VARIABLE_ASSIGNMENT_REGEX.match(i)]  # do poprawy
@@ -47,11 +49,12 @@ class Interpreter:
             self.variables[name] = value
         self.update_variables()
 
+    # same as above
     def update_variables(self):
         """update values of variables(change type and so on)"""
         # step 1 check if all variables contain only values(opposed to names of other variables)
         for variable, value in self.variables.items():
-            if type(value) is str and value.isalpha():
+            if type(value) is str and value.isalnum():
                 # substitute name of variable with value
                 self.variables[variable] = self.variables[value]
             else:
@@ -63,18 +66,29 @@ class Interpreter:
         :type operation: str
         """
         name, val1, sign, val2 = VARIABLE_ASSIGNMENT_CHANGE_REGEX.match(operation).groups()
-        if val1.isalpha():
+        if val1.isalnum():
             val1 = self.variables[val1]
         else:
             val1 = int(val1)
 
-        if val2.isalpha():
+        if val2.isalnum():  # trzeba uwzglednic sytuacje dla np nazwy temp_1, czyli liczba i underscore
             val2 = self.variables[val2]
         else:
             val2 = int(val2)
         if sign == "/":
             sign = '//'
         self.variables[name] = eval(f"{val1} {sign} {val2}")
+
+    def variable_assign(self, assignment: str) -> None:
+        """assign value to variable
+        :param assignment: assignment to be performed
+        :type assignment: str
+        """
+        name, val = VARIABLE_ASSIGNMENT_REGEX.match(assignment).groups()
+        if val.isalnum():
+            self.variables[name] = self.variables[val]
+        else:
+            self.variables[name] = int(val)
 
     @staticmethod
     def get_goto_line(line) -> int:
@@ -94,12 +108,12 @@ class Interpreter:
         :rtype: bool
         """
         val1, sign, val2 = CONDITION_REGEX.match(condition).groups()
-        if val1.isalpha():
+        if val1.isalnum():
             val1 = self.variables[val1]
         else:
             val1 = int(val1)
 
-        if val2.isalpha():
+        if val2.isalnum():
             val2 = self.variables[val2]
         else:
             val2 = int(val2)
@@ -148,14 +162,17 @@ class Interpreter:
 
     def load_steps(self) -> None:
         """load full list of steps during execution"""
+        # trzeba dodac obsluge przypisania wartosci w trakcie skryptu
         finished = False
         start_index = 0
         while not finished:
             for line in self.lines[start_index:]:
+                sleep(0.5)
                 instruction_type = self.determine_instruction_type(line)
+                print(line, self.variables, instruction_type)
                 if instruction_type == InstructionType.VARIABLE_ASSIGNMENT:
                     self.steps.append(line)
-                    continue
+                    self.variable_assign(line)
                 elif instruction_type in (InstructionType.CONDITIONAL_GOTO, InstructionType.CONDITIONAL_ACTION):
                     value = self.process_condition(line)
                     self.steps.append(line)
@@ -170,6 +187,7 @@ class Interpreter:
                     break
                 elif instruction_type == InstructionType.VARIABLE_ASSIGNMENT_CHANGE:
                     self.variable_operation(line)
+                    self.steps.append(line)
                 else:
                     self.steps.append(line)
                     finished = True
