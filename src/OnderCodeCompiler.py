@@ -30,8 +30,17 @@ class Interpreter:
         :type debug: bool
         :param kwargs: variables to be used in the program
         """
+        self.variables = {}
+        # NOTE!!! for array elements each element is stored as variable_name_1, variable_name_2, etc.
+        # however the length of the array is stored as variable_name
+        for x, y in kwargs.items():
+            if type(y) is list:
+                for i in range(len(y)):
+                    self.variables[f"{x}_{i + 1}"] = y[i]
+                self.variables[x] = len(y)
+            else:
+                self.variables[x] = y
         self.debug = debug
-        self.variables = kwargs
         self.steps = []
         self.lines = []
         self.path = Path(path)
@@ -68,24 +77,45 @@ class Interpreter:
             else:
                 self.variables[variable] = int(value)
 
+    def check_is_array(self, variable: str) -> bool:
+        """check if variable is an array
+        :param variable: variable to be checked
+        :type variable: str
+        :return: result of the check
+        :rtype: bool
+        """
+        return "_" in variable and variable.split("_")[0] in self.variables.keys()
+
     def variable_operation(self, operation: str) -> None:
         """calculate result of variable operation
         :param operation: operation to be performed
         :type operation: str
         """
-        name, val1, sign, val2 = VARIABLE_ASSIGNMENT_CHANGE_REGEX.match(operation).groups()
-        if val1.isidentifier():
+        result, val1, sign, val2 = VARIABLE_ASSIGNMENT_CHANGE_REGEX.match(operation).groups()
+        if len(result.split("_")) > 1 and self.check_is_array(result):
+            name, var = result.split("_")
+            result = f"{name}_{self.variables[var]}" if not var.isnumeric() else f"{name}_{var}"
+
+        if self.check_is_array(val1):
+            name, var = val1.split("_")
+            name = f"{name}_{self.variables[var]}" if not var.isnumeric() else f"{name}_{var}"
+            val1 = self.variables[name]
+        elif val1.isidentifier():
             val1 = self.variables[val1]
         else:
             val1 = int(val1)
 
-        if val2.isidentifier():  # trzeba uwzglednic sytuacje dla np nazwy temp_1, czyli liczba i underscore
+        if self.check_is_array(val2):
+            name, var = val2.split("_")
+            name = f"{name}_{self.variables[var]}" if not var.isnumeric() else f"{name}_{var}"
+            val2 = self.variables[name]
+        elif val2.isidentifier():  # trzeba uwzglednic sytuacje dla np nazwy temp_1, czyli liczba i underscore
             val2 = self.variables[val2]
         else:
             val2 = int(val2)
         if sign == "/":
             sign = '//'
-        self.variables[name] = eval(f"{val1} {sign} {val2}")
+        self.variables[result] = eval(f"{val1} {sign} {val2}")
 
     def variable_assign(self, assignment: str) -> None:
         """assign value to variable
@@ -93,7 +123,17 @@ class Interpreter:
         :type assignment: str
         """
         name, val = VARIABLE_ASSIGNMENT_REGEX.match(assignment).groups()
-        if val.isidentifier():
+        # if val > c throw Exception...
+        if len(name.split("_")) > 1 and self.check_is_array(name):
+            name, var = name.split("_")
+            name = f"{name}_{self.variables[var]}" if not var.isnumeric() else f"{name}_{var}"
+
+        if self.check_is_array(val):
+            _, val_end = val.split("_")
+            if not val_end.isnumeric():
+                val_end = self.variables[val_end]
+            self.variables[name] = self.variables[f"c_{val_end}"]
+        elif val.isidentifier():
             self.variables[name] = self.variables[val]
         else:
             self.variables[name] = int(val)
@@ -116,12 +156,20 @@ class Interpreter:
         :rtype: bool
         """
         val1, sign, val2 = CONDITION_REGEX.match(condition).groups()
-        if val1.isidentifier():
+        if self.check_is_array(val1):  # ekspertymentalne!!!
+            name, var = val1.split("_")
+            name = f"{name}_{self.variables[var]}" if not var.isnumeric() else f"{name}_{var}"
+            val1 = self.variables[name]
+        elif val1.isidentifier():
             val1 = self.variables[val1]
         else:
             val1 = int(val1)
 
-        if val2.isidentifier():
+        if self.check_is_array(val2):
+            name, var = val2.split("_")
+            name = f"{name}_{self.variables[var]}" if not var.isnumeric() else f"{name}_{var}"  # moze niedzialac
+            val2 = self.variables[name]
+        elif val2.isidentifier():
             val2 = self.variables[val2]
         else:
             val2 = int(val2)
