@@ -10,7 +10,7 @@ It's basically a fun project that I have done in my free time, it interprets a s
 
 ## Contributing
 
-Z.Onderka PHD since it's "his" pseudocode or rather something he has taught as to use
+Z.Onderka PHD since it's "his" pseudocode or rather something he has taught us to use
 
 
 ## Usage/Examples
