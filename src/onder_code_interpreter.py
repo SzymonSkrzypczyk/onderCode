@@ -123,7 +123,7 @@ class Interpreter:
         :type assignment: str
         """
         name, val = VARIABLE_ASSIGNMENT_REGEX.match(assignment).groups()
-        # if val > c throw Exception...
+        # the place where the first exception will be thrown!
         if len(name.split("_")) > 1 and self.check_is_array(name):
             name, var = name.split("_")
             name = f"{name}_{self.variables[var]}" if not var.isnumeric() else f"{name}_{var}"
@@ -156,7 +156,7 @@ class Interpreter:
         :rtype: bool
         """
         val1, sign, val2 = CONDITION_REGEX.match(condition).groups()
-        if self.check_is_array(val1):  # ekspertymentalne!!!
+        if self.check_is_array(val1):
             name, var = val1.split("_")
             name = f"{name}_{self.variables[var]}" if not var.isnumeric() else f"{name}_{var}"
             val1 = self.variables[name]
@@ -184,8 +184,6 @@ class Interpreter:
         :return: action to be performed
         :rtype: str
         """
-        # moze trzeba zmienic nazwe na cos w stylu extract_action_condition
-        # mozliwe ze bedize trzeba zmieniac co sie dzieje w ramach akcji
         if self.check_condition(condition):
             if CONDITION_GOTO_REGEX.match(condition):
                 return f"goto {CONDITION_GOTO_REGEX.match(condition).groups()[2]}"
@@ -218,7 +216,6 @@ class Interpreter:
 
     def load_steps(self) -> None:
         """load full list of steps during execution"""
-        # trzeba dodac obsluge przypisania wartosci w trakcie skryptu
         finished = False
         start_index = 0
         while not finished:

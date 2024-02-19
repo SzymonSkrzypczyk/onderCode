@@ -1,0 +1,2 @@
+class WrongIndex(ValueError):
+    pass
