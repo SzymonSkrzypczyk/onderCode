@@ -7,6 +7,7 @@ from src.onder_code_interpreter import Interpreter
 
 
 class OnderApp(tk.Tk):
+    """Simple GUI app for ONDERCODEEEEE"""
     def __init__(self):
         super().__init__()
         self.title("OnderCode Interpreter")
@@ -38,6 +39,8 @@ class OnderApp(tk.Tk):
         self.start_variables = {}
 
     def create_menu(self):
+        """Creates menu, with settings and file options. It exists as a
+        separate method to make the code more readable."""
         menu = tk.Menu(self)
 
         settings_menu = tk.Menu(menu, tearoff=0)
@@ -58,6 +61,7 @@ class OnderApp(tk.Tk):
         self.config(menu=menu)
 
     def create_fields(self):
+        """Creates text fields for the app. It exists as a separate method to make the code more readable."""
         self.text_field = tk.Text(self)
         self.text_field.grid(row=0, column=0, columnspan=3, rowspan=3)
 
@@ -91,6 +95,7 @@ class OnderApp(tk.Tk):
             # jesli blad brakuje zmiennych
 
     def _close(self):
+        """Hides the list of variables and steps"""
         if self.button_close.winfo_viewable():
             self.button_close.grid_remove()
 
@@ -102,6 +107,7 @@ class OnderApp(tk.Tk):
             self.steps_list.grid_remove()
 
     def show_steps(self):
+        """Shows steps of the execution"""
         with NamedTemporaryFile() as file:
             # Yeah i know it's against DRY rule :(
             path = Path(file.name)
@@ -116,12 +122,16 @@ class OnderApp(tk.Tk):
             self.button_close.grid(row=3, column=1)
 
     def _clear(self):
+        """Clears the text field and hides the list of variables and steps."""
         self.text_field.delete("1.0", tk.END)
         if self.variables_after_execution.winfo_viewable():
             self.variables_after_execution.grid_remove()
             self.variables_before_execution.grid_remove()
+        if self.steps_list.winfo_viewable():
+            self.steps_list.grid_remove()
 
     def _load(self):
+        """Loads the file and puts it into the text field."""
         filename = filedialog.askopenfilename(filetypes=[("OnderCode", "*.oc")])
         if filename:
             text = Path(filename).read_text()
@@ -129,11 +139,13 @@ class OnderApp(tk.Tk):
             self.text_field.insert("1.0", text)
 
     def _save(self):
+        """Saves the text from the text field into the file."""
         filename = filedialog.asksaveasfile(defaultextension=".oc", confirmoverwrite=True)
         if filename:
             Path(filename.name).write_text(self.text_field.get("1.0", tk.END))
 
     def add_variable(self):
+        """Adds variable to the list of variables."""
         dialog = tk.Toplevel(self)
         dialog.title("Add Variable")
         lab1 = tk.Label(dialog, text="Variable Name")
@@ -148,6 +160,7 @@ class OnderApp(tk.Tk):
         add_but.pack()
 
     def delete_variable(self):
+        """Deletes variable from the list of variables."""
         dialog = tk.Toplevel(self)
         dialog.title("Delete Variable")
         lab = tk.Label(dialog, text="Select Variables")
@@ -161,12 +174,14 @@ class OnderApp(tk.Tk):
         confirm_but.pack()
 
     def add_values(self, name, values, dialog):
+        """Adds values to the dictionary of variables."""
         if len(values.split(",")) > 1:
             values = int(values.split(","))
         self.start_variables[name] = values
         dialog.destroy()
 
     def delete_values(self, listbox, selected, dialog):
+        """Deletes values from the dictionary of variables."""
         if selected:
             for ind in selected:
                 del self.start_variables[listbox.get(ind)]

@@ -29,4 +29,13 @@ To execute the script
 c()
 print(c.variables)
 ```
-
+In order to create an executable from the project you have to install Pyinstaller
+```
+pip install pyinstaller
+```
+Then you can create an executable by running
+```
+pyinstaller --paths="src" main.py -w --onefile --name <yourname> 
+```
+Running this command will create an executable in the dist folder
+Since the project does not use any external libraries, the executable should work on any machine
